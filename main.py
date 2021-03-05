@@ -69,6 +69,8 @@ class MainWidget(QMainWindow):
 
         self.update_image()
 
+        self.layer_comboBox.currentIndexChanged.connect(self.update_image)
+
     def keyPressEvent(self, event):
         scale_keys = {
             Qt.Key_PageUp: -1,
@@ -116,10 +118,13 @@ class MainWidget(QMainWindow):
         self.update_image()
 
     def update_image(self):
+        layers = ["map", "sat", "sat,skl"]
+
+        layer = layers[self.layer_comboBox.currentIndex()]
         img_content = get_map(
             ll=tuple_to_str(self.coordinates),
             spn=tuple_to_str(self.scale),
-            l="map"
+            l=layer
         )
 
         image = QImage()
