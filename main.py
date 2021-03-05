@@ -68,6 +68,9 @@ class MainWidget(QMainWindow):
         self.coordinates = [0, 0]
         self.scale = [0.5, 0.5]
         self.map_label = ""
+        self.found_toponym = None
+
+        self.result_label.setText("")
 
         self.move_to_object(geocode)
         self.update_image()
@@ -98,6 +101,7 @@ class MainWidget(QMainWindow):
             return False
         self.coordinates = list(str_to_tuple(toponym["Point"]["pos"]))
         self.scale = list(get_toponym_size(toponym))
+        self.found_toponym = toponym
         return True
 
     def change_scale(self, power=1):
@@ -138,9 +142,12 @@ class MainWidget(QMainWindow):
         if result:
             self.map_label = tuple_to_str(self.coordinates) + ",pmgns"
             self.update_image()
+            address = self.found_toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]["formatted"]
+            self.result_label.setText(address)
 
     def reset_search_results(self):
         self.map_label = ""
+        self.result_label.setText("")
         self.update_image()
 
     def update_image(self):
