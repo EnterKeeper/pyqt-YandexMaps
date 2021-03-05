@@ -134,6 +134,14 @@ class MainWidget(QMainWindow):
         self.coordinates = new_coordinates
         self.update_image()
 
+    def update_result(self):
+        if self.found_toponym:
+            address = self.found_toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]
+            postal_code = ""
+            if self.postalcode_checkBox.isChecked() and "postal_code" in address:
+                postal_code = address["postal_code"] + ", "
+            self.result_label.setText(postal_code + address["formatted"])
+
     def search(self):
         text = self.search_lineEdit.text()
         if not text:
@@ -142,8 +150,7 @@ class MainWidget(QMainWindow):
         if result:
             self.map_label = tuple_to_str(self.coordinates) + ",pmgns"
             self.update_image()
-            address = self.found_toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]["formatted"]
-            self.result_label.setText(address)
+            self.update_result()
 
     def reset_search_results(self):
         self.map_label = ""
