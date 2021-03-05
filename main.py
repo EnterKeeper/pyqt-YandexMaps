@@ -70,10 +70,20 @@ class MainWidget(QMainWindow):
         self.update_image()
 
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_PageUp:
-            self.change_scale(-1)
-        elif event.key() == Qt.Key_PageDown:
-            self.change_scale(1)
+        scale_keys = {
+            Qt.Key_PageUp: -1,
+            Qt.Key_PageDown: 1
+        }
+        coord_keys = {
+            Qt.Key_Up: (0, 1),
+            Qt.Key_Down: (0, -1),
+            Qt.Key_Right: (1, 0),
+            Qt.Key_Left: (-1, 0)
+        }
+        if event.key() in scale_keys:
+            self.change_scale(scale_keys[event.key()])
+        if event.key() in coord_keys:
+            self.move_coordinates(coord_keys[event.key()])
 
     def change_scale(self, power=1):
         def check_scale(scale):
@@ -84,10 +94,25 @@ class MainWidget(QMainWindow):
 
         coefficient = 2 ** power
         new_scale = list(map(lambda x: x * coefficient, self.scale))
-        print(self.scale, new_scale)
         if not check_scale(new_scale):
             return
         self.scale = new_scale
+        self.update_image()
+
+    def move_coordinates(self, direction):
+        def check_coordinates(coords):
+            limits = [170, 70]
+            for i in range(len(coords)):
+                if abs(coords[i]) > limits[i]:
+                    return False
+            return True
+
+        coefficient = 0.2
+        new_coordinates = [self.coordinates[i] + self.scale[i] * coefficient * direction[i]
+                           for i in range(len(self.coordinates))]
+        if not check_coordinates(new_coordinates):
+            return False
+        self.coordinates = new_coordinates
         self.update_image()
 
     def update_image(self):
