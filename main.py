@@ -74,6 +74,7 @@ class MainWidget(QMainWindow):
 
         self.layer_comboBox.currentIndexChanged.connect(self.update_image)
         self.search_pushButton.clicked.connect(self.search)
+        self.reset_pushButton.clicked.connect(self.reset_search_results)
 
     def keyPressEvent(self, event):
         scale_keys = {
@@ -137,6 +138,10 @@ class MainWidget(QMainWindow):
         if result:
             self.map_label = tuple_to_str(self.coordinates) + ",pmgns"
             self.update_image()
+
+    def reset_search_results(self):
+        self.map_label = ""
+        self.update_image()
 
     def update_image(self):
         layers = ["map", "sat", "sat,skl"]

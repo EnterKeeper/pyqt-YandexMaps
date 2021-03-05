@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>622</width>
-    <height>551</height>
+    <height>592</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,7 +15,7 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="1" column="0" colspan="5">
+    <item row="2" column="0" colspan="5">
      <widget class="QLabel" name="image">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -69,6 +69,22 @@
       </item>
      </widget>
     </item>
+    <item row="0" column="2">
+     <spacer name="horizontalSpacer">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
     <item row="0" column="3">
      <widget class="QLabel" name="layer_label">
       <property name="sizePolicy">
@@ -88,21 +104,12 @@
     <item row="0" column="0">
      <widget class="QLineEdit" name="search_lineEdit"/>
     </item>
-    <item row="0" column="2">
-     <spacer name="horizontalSpacer">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
+    <item row="1" column="0" colspan="5">
+     <widget class="QPushButton" name="reset_pushButton">
+      <property name="text">
+       <string>Сброс поискового результата</string>
       </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
+     </widget>
     </item>
    </layout>
   </widget>
