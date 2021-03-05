@@ -1,10 +1,9 @@
 import sys
-import os
 import requests
-from io import BytesIO
 
 from PyQt5 import uic
 from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
 
@@ -68,6 +67,27 @@ class MainWidget(QMainWindow):
         self.coordinates = list(coordinates)
         self.scale = list(scale)
 
+        self.update_image()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_PageUp:
+            self.change_scale(-1)
+        elif event.key() == Qt.Key_PageDown:
+            self.change_scale(1)
+
+    def change_scale(self, power=1):
+        def check_scale(scale):
+            for x in scale:
+                if not 0.001 <= x <= 50:
+                    return False
+            return True
+
+        coefficient = 2 ** power
+        new_scale = list(map(lambda x: x * coefficient, self.scale))
+        print(self.scale, new_scale)
+        if not check_scale(new_scale):
+            return
+        self.scale = new_scale
         self.update_image()
 
     def update_image(self):
