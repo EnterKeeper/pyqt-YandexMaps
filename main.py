@@ -68,16 +68,17 @@ class MainWidget(QMainWindow):
         self.coordinates = [0, 0]
         self.scale = [0.5, 0.5]
         self.map_label = ""
-        self.found_toponym = None
 
         self.result_label.setText("")
 
         self.move_to_object(geocode)
         self.update_image()
+        self.found_toponym = None
 
         self.layer_comboBox.currentIndexChanged.connect(self.update_image)
         self.search_pushButton.clicked.connect(self.search)
         self.reset_pushButton.clicked.connect(self.reset_search_results)
+        self.postalcode_checkBox.stateChanged.connect(self.update_result)
 
     def keyPressEvent(self, event):
         scale_keys = {
@@ -135,12 +136,13 @@ class MainWidget(QMainWindow):
         self.update_image()
 
     def update_result(self):
-        if self.found_toponym:
-            address = self.found_toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]
-            postal_code = ""
-            if self.postalcode_checkBox.isChecked() and "postal_code" in address:
-                postal_code = address["postal_code"] + ", "
-            self.result_label.setText(postal_code + address["formatted"])
+        if not self.found_toponym:
+            return
+        address = self.found_toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]
+        postal_code = ""
+        if self.postalcode_checkBox.isChecked() and "postal_code" in address:
+            postal_code = address["postal_code"] + ", "
+        self.result_label.setText(postal_code + address["formatted"])
 
     def search(self):
         text = self.search_lineEdit.text()
