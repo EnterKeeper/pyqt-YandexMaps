@@ -37,7 +37,8 @@ def get_toponym(geocode, **kwargs):
     results = json_response["response"]["GeoObjectCollection"]["featureMember"]
     if not results:
         print("Ничего не найдено")
-        sys.exit(0)
+        return None
+        # sys.exit(0)
 
     toponym = results[0]["GeoObject"]
 
@@ -59,17 +60,20 @@ def tuple_to_str(point_tuple, sep=","):
 
 
 class MainWidget(QMainWindow):
-    def __init__(self, coordinates, scale):
+    def __init__(self, geocode):
         super().__init__()
         uic.loadUi('ui/main.ui', self)
         self.setWindowTitle('Yandex.Maps')
 
-        self.coordinates = list(coordinates)
-        self.scale = list(scale)
+        self.coordinates = [0, 0]
+        self.scale = [0.5, 0.5]
+        self.map_label = ""
 
+        self.move_to_object(geocode)
         self.update_image()
 
         self.layer_comboBox.currentIndexChanged.connect(self.update_image)
+        self.search_pushButton.clicked.connect(self.search)
 
     def keyPressEvent(self, event):
         scale_keys = {
@@ -86,6 +90,14 @@ class MainWidget(QMainWindow):
             self.change_scale(scale_keys[event.key()])
         if event.key() in coord_keys:
             self.move_coordinates(coord_keys[event.key()])
+
+    def move_to_object(self, geocode):
+        toponym = get_toponym(geocode)
+        if not toponym:
+            return False
+        self.coordinates = list(str_to_tuple(toponym["Point"]["pos"]))
+        self.scale = list(get_toponym_size(toponym))
+        return True
 
     def change_scale(self, power=1):
         def check_scale(scale):
@@ -117,6 +129,15 @@ class MainWidget(QMainWindow):
         self.coordinates = new_coordinates
         self.update_image()
 
+    def search(self):
+        text = self.search_lineEdit.text()
+        if not text:
+            return
+        result = self.move_to_object(text)
+        if result:
+            self.map_label = tuple_to_str(self.coordinates) + ",pmgns"
+            self.update_image()
+
     def update_image(self):
         layers = ["map", "sat", "sat,skl"]
 
@@ -124,6 +145,7 @@ class MainWidget(QMainWindow):
         img_content = get_map(
             ll=tuple_to_str(self.coordinates),
             spn=tuple_to_str(self.scale),
+            pt="~".join([self.map_label]),
             l=layer
         )
 
@@ -139,12 +161,8 @@ def except_hook(cls, exception, traceback):
 
 
 def main():
-    toponym = get_toponym(START_GEOCODE)
-    pos = str_to_tuple(toponym["Point"]["pos"])
-    size = get_toponym_size(toponym)
-
     app = QApplication(sys.argv)
-    widget = MainWidget(pos, size)
+    widget = MainWidget(START_GEOCODE)
     widget.show()
     sys.excepthook = except_hook
     sys.exit(app.exec())
