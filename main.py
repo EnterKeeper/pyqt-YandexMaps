@@ -96,6 +96,31 @@ class MainWidget(QMainWindow):
         if event.key() in coord_keys:
             self.move_coordinates(coord_keys[event.key()])
 
+    def get_coords(self, mouse_event):
+        img_rect = self.image.frameGeometry()
+        if not img_rect.x() <= mouse_event.x() <= img_rect.x() + img_rect.width() or \
+                not img_rect.y() <= mouse_event.y() <= img_rect.y() + img_rect.height():
+            return
+        center_x = (img_rect.x() * 2 + img_rect.width()) // 2
+        center_y = (img_rect.y() * 2 + img_rect.height()) // 2
+        rel_x = mouse_event.x() - center_x
+        rel_y = center_y - mouse_event.y()
+        add_x = (self.scale[0]) * (rel_x / img_rect.width())
+        add_y = (self.scale[1]) * (rel_y / img_rect.height())
+        return [self.coordinates[0] + add_x, self.coordinates[1] + add_y]
+
+    def mousePressEvent(self, event):
+        coords = self.get_coords(event)
+        if not coords:
+            return
+
+        if event.button() != 1:
+            return
+        self.map_label = tuple_to_str(coords) + ",pmgns"
+        self.found_toponym = get_toponym(tuple_to_str(coords))
+        self.update_result()
+        self.update_image()
+
     def move_to_object(self, geocode):
         toponym = get_toponym(geocode)
         if not toponym:
