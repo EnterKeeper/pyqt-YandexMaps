@@ -1,10 +1,27 @@
 import sys
 import requests
+import math
 
 from PyQt5 import uic
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow
+
+
+def lonlat_distance(a, b):
+    degree_to_meters_factor = 111 * 1000
+    a_lon, a_lat = a
+    b_lon, b_lat = b
+
+    radians_lattitude = math.radians((a_lat + b_lat) / 2.)
+    lat_lon_factor = math.cos(radians_lattitude)
+
+    dx = abs(a_lon - b_lon) * degree_to_meters_factor * lat_lon_factor
+    dy = abs(a_lat - b_lat) * degree_to_meters_factor
+
+    distance = math.sqrt(dx * dx + dy * dy)
+
+    return distance
 
 
 def get_toponym_size(toponym):
@@ -45,6 +62,37 @@ def get_toponym(geocode, **kwargs):
     return toponym
 
 
+def search_organization(address_ll, **params):
+    search_api_server = "https://search-maps.yandex.ru/v1/"
+
+    search_params = {
+        "apikey": "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3",
+        "text": address_ll,
+        "lang": "ru_RU",
+        "ll": address_ll,
+        "type": "biz"
+    }
+    search_params.update(params)
+
+    response = requests.get(search_api_server, params=search_params)
+
+    if not response:
+        print("Ошибка выполнения запроса:")
+        print(response.url)
+        print("Http статус:", response.status_code, "(", response.reason, ")")
+        sys.exit(0)
+
+    json_response = response.json()
+
+    results = json_response["features"]
+    if not results:
+        print("Ничего не найдено")
+        return
+        # sys.exit(0)
+
+    return results[0]
+
+
 def get_map(**params):
     map_api_server = "http://static-maps.yandex.ru/1.x/"
     response = requests.get(map_api_server, params=params)
@@ -74,6 +122,7 @@ class MainWidget(QMainWindow):
         self.move_to_object(geocode)
         self.update_image()
         self.found_toponym = None
+        self.found_org = None
 
         self.layer_comboBox.currentIndexChanged.connect(self.update_image)
         self.search_pushButton.clicked.connect(self.search)
@@ -114,10 +163,19 @@ class MainWidget(QMainWindow):
         if not coords:
             return
 
-        if event.button() != 1:
+        if event.button() not in (1, 2):
             return
-        self.map_label = tuple_to_str(coords) + ",pmgns"
-        self.found_toponym = get_toponym(tuple_to_str(coords))
+
+        if event.button() == 1:
+            self.map_label = tuple_to_str(coords) + ",pmgns"
+            self.found_toponym = get_toponym(tuple_to_str(coords))
+        elif event.button() == 2:
+            org = search_organization(tuple_to_str(coords), spn=tuple_to_str(self.scale))
+            org_coords = org["geometry"]["coordinates"]
+            self.found_toponym = None
+            if lonlat_distance(coords, org_coords) > 50:
+                return
+            self.found_org = org
         self.update_result()
         self.update_image()
 
@@ -161,13 +219,15 @@ class MainWidget(QMainWindow):
         self.update_image()
 
     def update_result(self):
-        if not self.found_toponym:
-            return
-        address = self.found_toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]
-        postal_code = ""
-        if self.postalcode_checkBox.isChecked() and "postal_code" in address:
-            postal_code = address["postal_code"] + ", "
-        self.result_label.setText(postal_code + address["formatted"])
+        if self.found_toponym:
+            address = self.found_toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]
+            postal_code = ""
+            if self.postalcode_checkBox.isChecked() and "postal_code" in address:
+                postal_code = address["postal_code"] + ", "
+            self.result_label.setText(postal_code + address["formatted"])
+        elif self.found_org:
+            address = self.found_org["properties"]["CompanyMetaData"]["address"]
+            self.result_label.setText(address)
 
     def search(self):
         text = self.search_lineEdit.text()
