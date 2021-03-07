@@ -63,7 +63,8 @@ def search_organization(address_ll, **params):
         "text": address_ll,
         "lang": "ru_RU",
         "ll": address_ll,
-        "type": "biz"
+        "type": "biz",
+        "spn": "0.001,0.001"
     }
     search_params.update(params)
 
@@ -107,7 +108,7 @@ class MainWidget(QMainWindow):
         self.setWindowTitle('Yandex.Maps')
 
         self.coordinates = [0, 0]
-        self.zoom = 15
+        self.zoom = 12
         self.map_label = ""
 
         self.result_label.setText("")
@@ -168,7 +169,7 @@ class MainWidget(QMainWindow):
             self.map_label = tuple_to_str(coords) + ",pmgns"
             self.found_toponym = get_toponym(tuple_to_str(coords))
         elif event.button() == 2:
-            org = search_organization(tuple_to_str(coords), spn=tuple_to_str(self.zoom))
+            org = search_organization(tuple_to_str(coords))
             org_coords = org["geometry"]["coordinates"]
             self.found_toponym = None
             if lonlat_distance(coords, org_coords) > 50:
