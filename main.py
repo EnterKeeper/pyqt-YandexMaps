@@ -24,13 +24,6 @@ def lonlat_distance(a, b):
     return distance
 
 
-def get_toponym_size(toponym):
-    lower_corner, upper_corner = [[float(x) for x in value.split()]
-                                  for value in toponym["boundedBy"]["Envelope"].values()]
-
-    return [abs(upper_corner[i] - lower_corner[i]) for i in (0, 1)]
-
-
 def get_toponym(geocode, **kwargs):
     geocoder_api_server = "http://geocode-maps.yandex.ru/1.x/"
 
@@ -114,7 +107,7 @@ class MainWidget(QMainWindow):
         self.setWindowTitle('Yandex.Maps')
 
         self.coordinates = [0, 0]
-        self.scale = [0.5, 0.5]
+        self.zoom = 15
         self.map_label = ""
 
         self.result_label.setText("")
@@ -130,7 +123,7 @@ class MainWidget(QMainWindow):
         self.postalcode_checkBox.stateChanged.connect(self.update_result)
 
     def keyPressEvent(self, event):
-        scale_keys = {
+        zoom_keys = {
             Qt.Key_PageUp: -1,
             Qt.Key_PageDown: 1
         }
@@ -140,8 +133,8 @@ class MainWidget(QMainWindow):
             Qt.Key_Right: (1, 0),
             Qt.Key_Left: (-1, 0)
         }
-        if event.key() in scale_keys:
-            self.change_scale(scale_keys[event.key()])
+        if event.key() in zoom_keys:
+            self.change_zoom(zoom_keys[event.key()])
         if event.key() in coord_keys:
             self.move_coordinates(coord_keys[event.key()])
 
@@ -150,12 +143,17 @@ class MainWidget(QMainWindow):
         if not img_rect.x() <= mouse_event.x() <= img_rect.x() + img_rect.width() or \
                 not img_rect.y() <= mouse_event.y() <= img_rect.y() + img_rect.height():
             return
+
+        coefficient_x, coefficient_y = 0.0000428, 0.0000428
+
         center_x = (img_rect.x() * 2 + img_rect.width()) // 2
         center_y = (img_rect.y() * 2 + img_rect.height()) // 2
         rel_x = mouse_event.x() - center_x
         rel_y = center_y - mouse_event.y()
-        add_x = (self.scale[0]) * (rel_x / img_rect.width())
-        add_y = (self.scale[1]) * (rel_y / img_rect.height())
+
+        add_x = rel_x * coefficient_x * (2 ** (15 - self.zoom))
+        add_y = rel_y * coefficient_y * (2 ** (15 - self.zoom)) * math.cos(math.radians(self.coordinates[1]))
+
         return [self.coordinates[0] + add_x, self.coordinates[1] + add_y]
 
     def mousePressEvent(self, event):
@@ -170,7 +168,7 @@ class MainWidget(QMainWindow):
             self.map_label = tuple_to_str(coords) + ",pmgns"
             self.found_toponym = get_toponym(tuple_to_str(coords))
         elif event.button() == 2:
-            org = search_organization(tuple_to_str(coords), spn=tuple_to_str(self.scale))
+            org = search_organization(tuple_to_str(coords), spn=tuple_to_str(self.zoom))
             org_coords = org["geometry"]["coordinates"]
             self.found_toponym = None
             if lonlat_distance(coords, org_coords) > 50:
@@ -184,22 +182,17 @@ class MainWidget(QMainWindow):
         if not toponym:
             return False
         self.coordinates = list(str_to_tuple(toponym["Point"]["pos"]))
-        self.scale = list(get_toponym_size(toponym))
         self.found_toponym = toponym
         return True
 
-    def change_scale(self, power=1):
-        def check_scale(scale):
-            for x in scale:
-                if not 0.001 <= x <= 50:
-                    return False
-            return True
+    def change_zoom(self, power=1):
+        def check_zoom(zoom):
+            return 1 <= zoom <= 15
 
-        coefficient = 2 ** power
-        new_scale = list(map(lambda x: x * coefficient, self.scale))
-        if not check_scale(new_scale):
+        zoom = self.zoom + power
+        if not check_zoom(zoom):
             return
-        self.scale = new_scale
+        self.zoom = zoom
         self.update_image()
 
     def move_coordinates(self, direction):
@@ -210,8 +203,8 @@ class MainWidget(QMainWindow):
                     return False
             return True
 
-        coefficient = 0.2
-        new_coordinates = [self.coordinates[i] + self.scale[i] * coefficient * direction[i]
+        coefficient = 0.002
+        new_coordinates = [self.coordinates[i] + ((2 ** (15 - self.zoom)) * coefficient * direction[i])
                            for i in range(len(self.coordinates))]
         if not check_coordinates(new_coordinates):
             return False
@@ -250,7 +243,7 @@ class MainWidget(QMainWindow):
         layer = layers[self.layer_comboBox.currentIndex()]
         img_content = get_map(
             ll=tuple_to_str(self.coordinates),
-            spn=tuple_to_str(self.scale),
+            z=self.zoom,
             pt="~".join([self.map_label]),
             l=layer
         )
