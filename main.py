@@ -58,9 +58,12 @@ def get_toponym(geocode, **kwargs):
 def search_organization(address_ll, **params):
     search_api_server = "https://search-maps.yandex.ru/v1/"
 
+    toponym = get_toponym(address_ll)
+    address = toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]["formatted"]
+
     search_params = {
         "apikey": "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3",
-        "text": address_ll,
+        "text": address,
         "lang": "ru_RU",
         "ll": address_ll,
         "type": "biz",
@@ -170,6 +173,8 @@ class MainWidget(QMainWindow):
             self.found_toponym = get_toponym(tuple_to_str(coords))
         elif event.button() == 2:
             org = search_organization(tuple_to_str(coords))
+            if not org:
+                return
             org_coords = org["geometry"]["coordinates"]
             self.found_toponym = None
             if lonlat_distance(coords, org_coords) > 50:
@@ -221,7 +226,8 @@ class MainWidget(QMainWindow):
             self.result_label.setText(postal_code + address["formatted"])
         elif self.found_org:
             address = self.found_org["properties"]["CompanyMetaData"]["address"]
-            self.result_label.setText(address)
+            name = self.found_org["properties"]["CompanyMetaData"]["name"]
+            self.result_label.setText(name + "; " + address)
 
     def search(self):
         text = self.search_lineEdit.text()
